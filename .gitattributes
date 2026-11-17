@@ -1,2 +1,7 @@
 *.csv filter=lfs diff=lfs merge=lfs -text
 matrix.def filter=lfs diff=lfs merge=lfs -text
+
+# Left out of the source archive that the release workflow publishes.
+.gitattributes export-ignore
+.markdownlint.json export-ignore
+.github export-ignore

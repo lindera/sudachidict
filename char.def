@@ -34,7 +34,7 @@ CYRILLIC        1 1 0
 
 # SPACE
 0x0020 SPACE  # DO NOT REMOVE THIS LINE, 0x0020 is reserved for SPACE
-0x00D0 SPACE
+0x000D SPACE
 0x0009 SPACE
 0x000B SPACE
 0x000A SPACE
@@ -49,8 +49,12 @@ CYRILLIC        1 1 0
 0x007B..0x007E SYMBOL   #{|}~
 
 # Latin
-0x00A1..0x00BF SYMBOL # Latin 1 #¡->ß
-0x00C0..0x00FF ALPHA  # Latin 1 #À->ÿ
+0x00A1..0x00BF SYMBOL # Latin 1 #¡->¿
+0x00C0..0x00D6 ALPHA  # Latin 1 #À->Ö
+0x00D7         SYMBOL # Latin 1 #×
+0x00D8..0x00F6 ALPHA  # Latin 1 #Ø->ö
+0x00F7         SYMBOL # Latin 1 #÷
+0x00F8..0x00FF ALPHA  # Latin 1 #ø->ÿ
 0x0100..0x017F ALPHA  # Latin Extended A
 0x0180..0x0236 ALPHA  # Latin Extended B
 0x1E00..0x1EF9 ALPHA  # Latin Extended Additional
@@ -66,10 +70,21 @@ CYRILLIC        1 1 0
 0x3041..0x309F  HIRAGANA
 
 # KATAKANA
-0x30A1..0x30FF  KATAKANA
+#0x30A1..0x30FF  KATAKANA
+0x30A1..0x30FA  KATAKANA
+0x30FC..0x30FF  KATAKANA
 0x31F0..0x31FF  KATAKANA  # Small KU .. Small RO
 # 0x30FC          KATAKANA HIRAGANA  # ー
-0x30FC          KATAKANA
+0x30A1          NOOOVBOW # Small A
+0x30A3          NOOOVBOW # ...
+0x30A5          NOOOVBOW
+0x30A7          NOOOVBOW
+0x30A9          NOOOVBOW
+0x30E3          NOOOVBOW
+0x30E5          NOOOVBOW
+0x30E7          NOOOVBOW
+0x30EE          NOOOVBOW # Small Wa
+0x30FC..0x30FE  NOOOVBOW # 'ー' 'ヽ' 'ヾ'
 
 # Half KATAKANA
 0xFF66..0xFF9D  KATAKANA
@@ -78,12 +93,14 @@ CYRILLIC        1 1 0
 # KANJI
 0x2E80..0x2EF3  KANJI # CJK Raidcals Supplement
 0x2F00..0x2FD5  KANJI
-0x3005          KANJI
+0x3005          KANJI NOOOVBOW
 0x3007          KANJI
 0x3400..0x4DB5  KANJI # CJK Unified Ideographs Extention
-0x4E00..0x9FA5  KANJI
+#0x4E00..0x9FA5  KANJI
+0x4E00..0x9FFF  KANJI
 0xF900..0xFA2D  KANJI
 0xFA30..0xFA6A  KANJI
+
 
 # KANJI-NUMERIC (一 二 三 四 五 六 七 八 九 十 百 千 万 億 兆)
 0x4E00 KANJINUMERIC KANJI
@@ -102,7 +119,7 @@ CYRILLIC        1 1 0
 0x5104 KANJINUMERIC KANJI
 0x5146 KANJINUMERIC KANJI
 
-# ZENKAKU 
+# ZENKAKU
 0xFF10..0xFF19 NUMERIC
 0xFF21..0xFF3A ALPHA
 0xFF41..0xFF5A ALPHA
@@ -116,7 +133,6 @@ CYRILLIC        1 1 0
 0x2000..0x206F  SYMBOL # General Punctuation
 0x2070..0x209F  NUMERIC # Superscripts and Subscripts
 0x20A0..0x20CF  SYMBOL # Currency Symbols
-0x20D0..0x20FF  SYMBOL # Combining Diaritical Marks for Symbols
 0x2100..0x214F  SYMBOL # Letterlike Symbols
 0x2150..0x218F  NUMERIC # Number forms
 0x2100..0x214B  SYMBOL # Letterlike Symbols
@@ -141,7 +157,23 @@ CYRILLIC        1 1 0
 0xFE30..0xFE4F  SYMBOL # CJK Compatibility Forms
 0xFE50..0xFE6B  SYMBOL # Small Form Variants
 
-# added 2006/3/13 
+# added 2006/3/13
 0x3007 SYMBOL KANJINUMERIC
+
+# added 2018/11/30
+0x309b..0x309c HIRAGANA KATAKANA # voiced/semi-voiced sound marks
+
+# Unicode combining symbols 2021/12/03
+# from https://en.wikipedia.org/wiki/Combining_character
+0x0300..0x036F ALL NOOOVBOW # Combining Diacritical Marks
+0x1AB0..0x1AFF ALL NOOOVBOW # Combining Diacritical Marks Extended
+0x1DC0..0x1DFF ALL NOOOVBOW # Combining Diacritical Marks Supplement
+0x20D0..0x20FF ALL NOOOVBOW # Combining Diacritical Marks for Symbols
+0xFE20..0xFE2F ALL NOOOVBOW # Combining Half Marks
+0xFE00..0xFE0F ALL NOOOVBOW # https://codepoints.net/variation_selectors
+0x1F3FB..0x1F3FE ALL NOOOVBOW # emoji skin tone modifiers https://codepoints.net/U+1F3FF
+
+# Combination marks
+0x200C..0x200D ALL NOOOVBOW NOOOVEOW # Zero Width Non-Joiner/Joiner
 
 # END OF TABLE

@@ -1,0 +1,119 @@
+name: Release
+
+# A tag push builds the source archive sudachidict-<tag>.tar.gz from a checkout
+# with the Git LFS files, checks it against the commit, and publishes it to
+# lindera.dev (Cloudflare R2) and to the GitHub release. GitHub's own source
+# archive cannot be used: it holds the LFS pointers, not the files.
+#
+# A pull request that changes this workflow, the check script or
+# .gitattributes builds and checks the archive without publishing it. Each run
+# fetches about 1 GB of LFS files, so other pull requests do not run it.
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - ".github/scripts/check-archive.sh"
+      - ".gitattributes"
+
+jobs:
+  archive:
+    name: Source archive
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out with the LFS files
+        uses: actions/checkout@v6
+        with:
+          lfs: true
+
+      - name: Name the archive
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME}"
+          else
+            VERSION="0.0.0-pr${PR_NUMBER}"
+          fi
+          {
+            echo "VERSION=${VERSION}"
+            echo "ARCHIVE=sudachidict-${VERSION}.tar.gz"
+          } >> "${GITHUB_ENV}"
+
+      - name: Build the archive
+        run: git archive --format=tar.gz --prefix="sudachidict-${VERSION}/" --output="${ARCHIVE}" HEAD
+
+      - name: Check the archive
+        run: bash .github/scripts/check-archive.sh "${ARCHIVE}" "${VERSION}" HEAD
+
+      - name: Write the SHA-256
+        run: |
+          sha256sum "${ARCHIVE}" > "${ARCHIVE}.sha256"
+          SHA256=$(cut -d ' ' -f 1 "${ARCHIVE}.sha256")
+          echo "SHA256=${SHA256}" >> "${GITHUB_ENV}"
+          {
+            echo "### ${ARCHIVE}"
+            echo
+            echo "- Top directory: \`sudachidict-${VERSION}/\`"
+            echo "- Size: $(stat -c %s "${ARCHIVE}") bytes"
+            echo "- SHA-256: \`${SHA256}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      # The query string keeps a cached response of lindera.dev out of the way.
+      - name: Refuse to overwrite a published archive
+        if: github.ref_type == 'tag'
+        run: |
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' -r 0-0 "https://lindera.dev/${ARCHIVE}?run=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}")
+          if [ "${STATUS}" != "404" ]; then
+            echo "::error::https://lindera.dev/${ARCHIVE} answers ${STATUS}, not 404. Builds pin its SHA-256, so it is not replaced; delete it by hand to publish it again."
+            exit 1
+          fi
+
+      # The release comes before the upload, so that a run that fails at the
+      # upload can be run again without being stopped by the step above.
+      - name: Create the release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          body: |
+            `${{ env.ARCHIVE }}`, published at <https://lindera.dev/${{ env.ARCHIVE }}>:
+
+            - Top directory: `sudachidict-${{ env.VERSION }}/`
+            - SHA-256: `${{ env.SHA256 }}`
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            ${{ env.ARCHIVE }}
+            ${{ env.ARCHIVE }}.sha256
+
+      - name: Upload to Cloudflare R2
+        if: github.ref_type == 'tag'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          aws s3 cp "${ARCHIVE}" "s3://lindera/${ARCHIVE}" --content-type "application/gzip"
+          aws s3 cp "${ARCHIVE}.sha256" "s3://lindera/${ARCHIVE}.sha256" --content-type "text/plain"
+
+      - name: Check the published archive
+        if: github.ref_type == 'tag'
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            PUBLISHED=$(curl -sSfL "https://lindera.dev/${ARCHIVE}?run=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}" | sha256sum | cut -d ' ' -f 1) || PUBLISHED=""
+            if [ "${PUBLISHED}" = "${SHA256}" ]; then
+              echo "PUBLISHED_OK https://lindera.dev/${ARCHIVE} ${PUBLISHED}"
+              exit 0
+            fi
+            echo "Attempt ${attempt}: SHA-256 [${PUBLISHED}], expected ${SHA256}"
+            sleep 10
+          done
+          echo "::error::https://lindera.dev/${ARCHIVE} does not serve the archive that was built"
+          exit 1
